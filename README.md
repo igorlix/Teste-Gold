@@ -1,160 +1,140 @@
-# Busca Avançada Gold
+# Busca-avancada-Gold
 
-Sistema de busca avançada para catálogo de livros usando busca fuzzy e semântica com Databricks Vector Search.
+Sistema de busca avançada para catálogo de livros usando técnicas de busca fuzzy e semântica com Databricks Vector Search.
 
-## 🚀 Quick Start
+## Características
 
-### 1. Clonar e Instalar
+- **Busca Fuzzy**: Correspondências aproximadas usando RapidFuzz
+- **Busca Semântica**: Busca por significado usando embeddings e Databricks Vector Search
+- **RRF (Reciprocal Rank Fusion)**: Combina resultados de diferentes métodos de busca
+- **Execução Local**: Suporte para execução local usando credenciais Databricks via .env
 
+## Requisitos
+
+- **Python 3.10 ou 3.11** (Recomendado para Windows - evita problemas de compilação)
+- Python 3.8+ (mínimo)
+- Acesso ao Databricks (host e token)
+- Dependências listadas em `requirements.txt`
+
+## Instalação
+
+> **WINDOWS:** Se você está no Windows com Python 3.13, **recomendamos usar Python 3.10 ou 3.11** para evitar problemas de compilação. Veja o guia: [PYTHON_SETUP.md](PYTHON_SETUP.md)
+
+> **Problemas na instalação?** Consulte o [INSTALL.md](INSTALL.md) para troubleshooting detalhado.
+
+### Instalação Rápida
+
+1. Clone o repositório
+2. Instale as dependências:
 ```bash
-# Clone o repositório
-git clone <repo-url>
-cd Busca-avancada-Gold
-
-# Crie ambiente virtual com Python 3.10 ou 3.11 (recomendado para Windows)
-py -3.10 -m venv venv
-
-# Ative o ambiente virtual
-venv\Scripts\activate  # Windows
-source venv/bin/activate  # Linux/Mac
-
-# Instale dependências
+# Método 1: Via requirements.txt
 pip install -r requirements.txt
+
+# Método 2: Instalação direta (recomendado)
+pip install pandas python-dotenv rapidfuzz databricks-vectorsearch databricks-langchain
 ```
 
-### 2. Configurar Credenciais
-
-```bash
-# Copie o template
-cp .env.config .env
-
-# Edite com suas credenciais Databricks
-notepad .env  # Windows
-nano .env     # Linux/Mac
+3. Edite o arquivo `.env.example`, renomeie para `.env` e adicione suas credenciais:
 ```
-
-Configure no `.env`:
-```ini
 DATABRICKS_HOST=seu-workspace.cloud.databricks.com
 DATABRICKS_TOKEN=dapi1234567890abcdef
 WHO_IS_RUNNING_THIS=local
 ```
 
-### 3. Testar
+## Execução Local
+
+Existem duas formas de testar localmente:
+
+### Opção 1: Script de teste dedicado 
 
 ```bash
-# Certifique-se de estar no venv (deve aparecer (venv) no prompt)
 python test_local.py
 ```
 
-## ✨ Características
+O script executa múltiplos testes:
+- Busca por texto livre ("Lei Maria da Penha")
+- Busca por campos específicos (título: "Python")
 
-- **Busca Fuzzy**: Correspondências aproximadas usando RapidFuzz
-- **Busca Semântica**: Busca por significado usando Databricks Vector Search
-- **RRF**: Combina resultados de diferentes métodos
-- **Execução Local**: Roda localmente conectando ao Databricks
+### Opção 2: Executar o main.py diretamente
 
-## 📋 Requisitos
-
-- Python 3.10 ou 3.11 (recomendado Windows)
-- Python 3.8+ (mínimo)
-- Credenciais Databricks (host + token)
-
-## 🔧 Configuração do Vector Search
-
-Se precisar criar seu próprio endpoint:
+Navegue até a pasta do módulo e execute:
 
 ```bash
-python setup_vector_search.py
+cd src/gold/busca
+python main.py
 ```
 
-Depois atualize [config_semantic_search.py](src/gold/busca/config_semantic_search.py):
-```python
-vector_search_config = {
-    "endpoint_name": "my_books_endpoint",
-    "index_table": "gold_mb_dev.busca_avancada.my_books_search_index",
-    "table": "bronze_mb_dev.busca_avancada.ebooks_search"
-}
+O arquivo [main.py](src/gold/busca/main.py) agora possui um bloco `if __name__ == "__main__"` que:
+- Carrega automaticamente as credenciais do `.env`
+- Define `WHO_IS_RUNNING_THIS=local`
+- Executa uma busca de exemplo
+- Exibe os resultados formatados
+
+## Estrutura do Projeto
+
+```
+Busca-avancada-Gold/
+├── src/
+│   ├── gold/
+│   │   └── busca/              # Módulo principal de busca
+│   │       ├── main.py         # Função de consolidação
+│   │       ├── fuzzy_search.py # Implementação de busca fuzzy
+│   │       ├── semantic_search.py  # Implementação de busca semântica
+│   │       ├── rrf.py          # Reciprocal Rank Fusion
+│   │       └── books_search.csv    # Dataset de livros
+│   └── utils/                  # Utilitários compartilhados
+│       ├── dynamic_cat/        # Configuração dinâmica de catálogos
+│       ├── aws_utils/          # Utilitários AWS
+│       └── bugsnag_utils/      # Configuração Bugsnag
+├── test_local.py               # Script de teste local
+├── .env.example                # Exemplo de configuração
+└── requirements.txt            # Dependências Python
 ```
 
-## 📖 Documentação
+## Como Funciona
 
-- **[MODIFICACOES_LOCAL.md](MODIFICACOES_LOCAL.md)** - Guia completo das modificações para execução local
-- **[PYTHON_SETUP.md](PYTHON_SETUP.md)** - Setup detalhado Python 3.10/3.11 no Windows
-- **[INSTALL.md](INSTALL.md)** - Troubleshooting de instalação
-
-## 🎯 Como Usar
-
-### Busca por Texto Livre
-
+### 1. Busca por Texto Livre
 ```python
-from gold.busca.main import consolidation_function
-import pandas as pd
-
 data = {
-    'searchQuery': 'Python',
+    'searchQuery': 'Lei Maria da Penha',
     'selectedFields': {},
     'userCatalogs': ['uuid1', 'uuid2']
 }
-
-file_csv = pd.read_csv("books_search.csv")
-result = consolidation_function(data, file_csv, local=True)
 ```
+Combina busca exata, fuzzy e semântica usando RRF.
 
-### Busca por Campos
-
+### 2. Busca por Campos Específicos
 ```python
 data = {
     'searchQuery': '',
     'selectedFields': {
         'titulo': 'Python',
-        'autores': '',
+        'autores': 'Guido',
         'isbn': ''
     },
     'userCatalogs': ['uuid1', 'uuid2']
 }
 ```
+Busca fuzzy nos campos especificados.
 
-## 🔑 Obter Token Databricks
+## Modos de Execução
 
-1. Acesse seu workspace: `https://seu-workspace.cloud.databricks.com`
-2. User Settings → Access Tokens
-3. Generate New Token
-4. Copie o token para o `.env`
+O código suporta três modos através da variável `WHO_IS_RUNNING_THIS`:
 
-## 🐛 Troubleshooting
+1. **`local`**: Execução local com credenciais do .env
+2. **`ENDPOINT_NOTEBOOK`**: Execução em notebook Databricks
+3. **`ENDPOINT_MLFLOW`**: Execução em endpoint MLflow Databricks
 
-**Erro de permissão no Vector Search?**
-- Verifique se tem acesso ao endpoint no Catalog Explorer
-- Ou crie seu próprio: `python setup_vector_search.py`
+## Configuração do Databricks
 
-**Erro de compilação no Windows?**
-- Use Python 3.10 ou 3.11: veja [PYTHON_SETUP.md](PYTHON_SETUP.md)
+### Obter Token de Acesso
 
-**Módulos não encontrados?**
-- Ative o venv: `venv\Scripts\activate`
-- Reinstale: `pip install -r requirements.txt`
+1. Acesse seu workspace Databricks
+2. Vá em **User Settings** > **Access Tokens**
+3. Clique em **Generate New Token**
+4. Copie o token gerado
 
-## 📁 Estrutura
+### Host do Databricks
 
-```
-Busca-avancada-Gold/
-├── src/gold/busca/         # Módulo principal
-│   ├── main.py             # Função consolidation
-│   ├── fuzzy_search.py     # Busca fuzzy
-│   ├── semantic_search.py  # Busca semântica
-│   └── rrf.py              # RRF
-├── test_local.py           # Script de teste
-├── setup_vector_search.py  # Setup do Vector Search
-└── .env                    # Suas credenciais (não versionar!)
-```
-
-## 🔄 Modos de Execução
-
-- `local` - Execução local (via .env)
-- `ENDPOINT_NOTEBOOK` - Notebook Databricks
-- `ENDPOINT_MLFLOW` - MLflow Endpoint
-
----
-
-**Precisa de mais detalhes?** Veja [MODIFICACOES_LOCAL.md](MODIFICACOES_LOCAL.md)
+O host é o domínio do seu workspace (sem `https://`):
+- Exemplo: `dbc-a1b2c3d4-e5f6.cloud.databricks.com`
