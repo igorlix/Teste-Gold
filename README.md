@@ -1,4 +1,4 @@
-# Busca-avancada-Gold
+# Busca-avancada
 
 Sistema de busca avançada para catálogo de livros usando técnicas de busca fuzzy e semântica com Databricks Vector Search.
 
