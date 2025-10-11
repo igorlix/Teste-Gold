@@ -18,12 +18,11 @@ Sistema de busca avançada para catálogo de livros usando técnicas de busca fu
 
 ## Instalação
 
-> **WINDOWS:** Se você está no Windows com Python 3.13, **recomendamos usar Python 3.10 ou 3.11** para evitar problemas de compilação. Veja o guia: [PYTHON_SETUP.md](PYTHON_SETUP.md)
+> **WINDOWS:** Se você está no Windows com Python 3.13, **recomendamos usar Python 3.10 ou 3.11** para evitar problemas de compilação. Veja o guia: [PYTHON_SETUP.md](docs/PYTHON_SETUP.md)
 
-> **Problemas na instalação?** Consulte o [INSTALL.md](INSTALL.md) para troubleshooting detalhado.
+> **Problemas na instalação?** Consulte o [INSTALL.md](docs/INSTALL.md) para troubleshooting detalhado.
 
 ### Instalação Rápida
-
 1. Clone o repositório
 2. Instale as dependências:
 ```bash
