@@ -1,0 +1,13 @@
+# Core dependencies
+pandas>=2.0.0
+python-dotenv>=1.0.0
+
+# Databricks dependencies (requer credenciais configuradas no .env)
+databricks-vectorsearch>=0.22
+databricks-langchain>=0.1.0
+
+# Busca fuzzy
+rapidfuzz>=3.0.0
+
+# Opcional: Error tracking (apenas para ambientes Databricks)
+# bugsnag>=4.0.0

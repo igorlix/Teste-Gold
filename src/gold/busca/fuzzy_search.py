@@ -6,13 +6,27 @@ from typing import Any, Dict, List
 
 import pandas as pd
 from rapidfuzz import fuzz
-import bugsnag
+
+# Importa bugsnag apenas se disponível
+try:
+    import bugsnag
+except ImportError:
+    # Mock do bugsnag para ambiente local
+    class MockBugsnag:
+        @staticmethod
+        def notify(exception):
+            pass  # Ignora notificações em ambiente local
+    bugsnag = MockBugsnag()
 
 runner = str(os.getenv("WHO_IS_RUNNING_THIS"))
 if (runner=="ENDPOINT_NOTEBOOK") or (runner=="ENDPOINT_MLFLOW"):
     from model.config_fuzzy_search import MAX_RESULTS, field_config, required_columns
 else: # teste local
-    from config_fuzzy_search import MAX_RESULTS, field_config, required_columns
+    # Tenta import relativo (quando importado como módulo) ou absoluto (quando executado diretamente)
+    try:
+        from .config_fuzzy_search import MAX_RESULTS, field_config, required_columns
+    except ImportError:
+        from config_fuzzy_search import MAX_RESULTS, field_config, required_columns
     
 
 class FuzzySearch:

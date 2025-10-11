@@ -24,8 +24,8 @@ update_books = {
 
 # Configurações do Vector Search
 vs_config = {
-    "endpoint_name": "recommendation_endpoint",
-    "index_name": "gold_mb_dev.busca_avancada.ebooks_search_index",
+    "endpoint_name": "my_books_endpoint",
+    "index_name": "gold_mb_dev.busca_avancada.my_books_search_index",
     "embedding_model_endpoint_name": "databricks-bge-large-en",
     "source_table_name": table_ebooks_search,
     "pk": "uuid",

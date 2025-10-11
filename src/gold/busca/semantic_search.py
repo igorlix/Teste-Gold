@@ -9,7 +9,21 @@ from typing import Any, Dict, List
 import pandas as pd
 from databricks.vector_search.client import VectorSearchClient
 from databricks_langchain import ChatDatabricks
-import bugsnag
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente para execução local
+load_dotenv()
+
+# Importa bugsnag apenas se disponível
+try:
+    import bugsnag
+except ImportError:
+    # Mock do bugsnag para ambiente local
+    class MockBugsnag:
+        @staticmethod
+        def notify(exception):
+            pass  # Ignora notificações em ambiente local
+    bugsnag = MockBugsnag()
 
 runner = str(os.getenv("WHO_IS_RUNNING_THIS"))
 if runner=="ENDPOINT_NOTEBOOK":
@@ -34,14 +48,35 @@ elif runner=="ENDPOINT_MLFLOW":
     )
 else: # teste local
     from utils.dynamic_cat import dynamic_catalog, env_config
-    from utils.aws_utils import secrets
-    from config_semantic_search import (
-        chat_model_config,
-        required_columns,
-        search_config,
-        suggestion_prompt_template,
-        vector_search_config,
-    )
+
+    # Tenta importar AWS utils (opcional - só usado em prod)
+    try:
+        from utils.aws_utils import secrets
+    except (ImportError, ModuleNotFoundError):
+        # Mock para ambiente local sem AWS
+        class MockSecrets:
+            @staticmethod
+            def get_secret(secret_name):
+                return {secret_name: None}
+        secrets = MockSecrets()
+
+    # Tenta import relativo (quando importado como módulo) ou absoluto (quando executado diretamente)
+    try:
+        from .config_semantic_search import (
+            chat_model_config,
+            required_columns,
+            search_config,
+            suggestion_prompt_template,
+            vector_search_config,
+        )
+    except ImportError:
+        from config_semantic_search import (
+            chat_model_config,
+            required_columns,
+            search_config,
+            suggestion_prompt_template,
+            vector_search_config,
+        )
 
 class SemanticSearch:
     def __init__(self, df: pd.DataFrame):
@@ -58,13 +93,38 @@ class SemanticSearch:
         Configura o VectorSearchClient baseado no host atual.
         O vector search endpoint só existe em dev, então se estiver
         em prod, precisa mudar o workspace_url.
-        
+
         Returns:
             VectorSearchClient: Cliente configurado para o workspace apropriado
         """
+        runner = str(os.getenv("WHO_IS_RUNNING_THIS"))
+        print(f"DEBUG: A variável WHO_IS_RUNNING_THIS está como: '{runner}'")
         host = os.getenv("DATABRICKS_HOST") # so vai existir dentro do endpoint mlflow
         print("HOST: ", host)
-        if not host: # se está rodando localmente, então vai retornar None
+
+        # Se rodando localmente, configura com credenciais do .env
+        if runner == "local" or (not host and runner not in ["ENDPOINT_NOTEBOOK", "ENDPOINT_MLFLOW"]):
+            print("LOG: Running locally. Using credentials from .env file...")
+            databricks_host = os.getenv("DATABRICKS_HOST")
+            databricks_token = os.getenv("DATABRICKS_TOKEN")
+
+            if not databricks_host or not databricks_token:
+                raise ValueError(
+                    "DATABRICKS_HOST and DATABRICKS_TOKEN must be set in .env file.\n"
+                    "Copy .env.config to .env and fill in your credentials."
+                )
+
+            # Garante que o host tem https://
+            if not databricks_host.startswith("https://"):
+                databricks_host = f"https://{databricks_host}"
+
+            return VectorSearchClient(
+                workspace_url=databricks_host,
+                personal_access_token=databricks_token,
+                disable_notice=True
+            )
+
+        if not host: # se está rodando localmente sem WHO_IS_RUNNING_THIS, pega do dynamic_catalog
             host = "https://"+str(dynamic_catalog.get_host())
 
         # Se o host for prod, então muda o workspace_url do vector search
