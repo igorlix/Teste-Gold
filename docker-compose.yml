@@ -17,12 +17,12 @@ services:
       # LLM Provider (databricks ou bedrock)
       - LLM_PROVIDER=bedrock
 
-      # AWS (usando credenciais da máquina host)
+      # AWS 
       - AWS_REGION=us-east-2
       - AWS_BEDROCK_MODEL_ID=us.amazon.nova-pro-v1:0
 
 
-      # CORS (ajuste conforme necessário)
+      # CORS 
       - CORS_ORIGINS=*
 
     volumes:
