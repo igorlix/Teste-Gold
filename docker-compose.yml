@@ -21,14 +21,10 @@ services:
       - AWS_REGION=us-east-2
       - AWS_BEDROCK_MODEL_ID=us.amazon.nova-pro-v1:0
 
-      # Databricks (opcional - descomente e configure se necessário)
-      # - DATABRICKS_HOST=your-workspace.cloud.databricks.com
-      # - DATABRICKS_TOKEN=dapi1234567890abcdef
 
       # CORS (ajuste conforme necessário)
       - CORS_ORIGINS=*
 
-    # Monta credenciais AWS da máquina host (somente para desenvolvimento local)
     volumes:
       - ~/.aws:/home/appuser/.aws:ro
 
