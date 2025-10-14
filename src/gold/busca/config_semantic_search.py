@@ -5,11 +5,21 @@ vector_search_config = {
     "table": "bronze_mb_dev.busca_avancada.ebooks_search"
 }
 
-# Configurações do modelo de chat
+# Configurações do modelo de chat Databricks
 chat_model_config = {
     "endpoint": "databricks-claude-3-7-sonnet",
     "temperature": 0.3,
     "max_tokens": 150
+}
+
+
+bedrock_model_config = {
+    # Modelos Claude bloqueados para Channel Program Accounts
+    # Alternativas: "us.amazon.nova-lite-v1:0" (mais rápido/barato) ou "us.amazon.nova-pro-v1:0" (melhor qualidade)
+    "model_id": "us.amazon.nova-pro-v1:0",
+    "temperature": 0.3,
+    "max_tokens": 150,
+    "region_name": "us-east-2"  
 }
 
 # Configurações de busca

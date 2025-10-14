@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: busca-avancada-api
+    ports:
+      - "9001:9001"
+    environment:
+      # Application
+      - ENVIRONMENT=development
+      - WHO_IS_RUNNING_THIS=ENDPOINT_MLFLOW
+      - LOG_LEVEL=INFO
+
+      # LLM Provider (databricks ou bedrock)
+      - LLM_PROVIDER=bedrock
+
+      # AWS (usando credenciais da máquina host)
+      - AWS_REGION=us-east-2
+      - AWS_BEDROCK_MODEL_ID=us.amazon.nova-pro-v1:0
+
+      # Databricks (opcional - descomente e configure se necessário)
+      # - DATABRICKS_HOST=your-workspace.cloud.databricks.com
+      # - DATABRICKS_TOKEN=dapi1234567890abcdef
+
+      # CORS (ajuste conforme necessário)
+      - CORS_ORIGINS=*
+
+    # Monta credenciais AWS da máquina host (somente para desenvolvimento local)
+    volumes:
+      - ~/.aws:/home/appuser/.aws:ro
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  default:
+    name: busca-avancada-network

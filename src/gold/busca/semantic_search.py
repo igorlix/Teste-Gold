@@ -2,6 +2,7 @@ import os
 import sys
 import time
 from typing import Any, Dict, List
+import boto3
 
 # from pathlib import Path
 # sys.path.append(str((Path.cwd() / Path('../' * 3)).resolve()))
@@ -64,19 +65,24 @@ else: # teste local
     try:
         from .config_semantic_search import (
             chat_model_config,
+            bedrock_model_config,
             required_columns,
             search_config,
             suggestion_prompt_template,
             vector_search_config,
         )
+        from .bedrock_chat import BedrockChat
     except ImportError:
         from config_semantic_search import (
             chat_model_config,
+            bedrock_model_config,
             required_columns,
             search_config,
             suggestion_prompt_template,
             vector_search_config,
         )
+        from bedrock_chat import BedrockChat
+
 
 class SemanticSearch:
     def __init__(self, df: pd.DataFrame):
@@ -89,14 +95,6 @@ class SemanticSearch:
         self.df = self._load_data(df)
 
     def _configure_vector_search_client(self):
-        """
-        Configura o VectorSearchClient baseado no host atual.
-        O vector search endpoint só existe em dev, então se estiver
-        em prod, precisa mudar o workspace_url.
-
-        Returns:
-            VectorSearchClient: Cliente configurado para o workspace apropriado
-        """
         runner = str(os.getenv("WHO_IS_RUNNING_THIS"))
         print(f"DEBUG: A variável WHO_IS_RUNNING_THIS está como: '{runner}'")
         host = os.getenv("DATABRICKS_HOST") # so vai existir dentro do endpoint mlflow
@@ -143,15 +141,6 @@ class SemanticSearch:
             return VectorSearchClient(disable_notice=True) # padrão
         
     def _load_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Valida e filtra o DataFrame com as colunas obrigatórias: 'title', 'authors', 'isbn'.
-
-        Returns:
-            pd.DataFrame: DataFrame filtrado.
-
-        Raises:
-            ValueError: Se as colunas obrigatórias não existirem ou df for inválido.
-        """
         if not isinstance(df, pd.DataFrame):
             raise ValueError(
                 "A Pandas DataFrame was expected, but the input came as {}".format(type(df)))
@@ -170,11 +159,6 @@ class SemanticSearch:
         return df_filtered
 
     def get_exact_matches(self, search_content: str) -> list:
-        """
-        Busca correspondências exatas no título, autor ou ISBN
-        usando o arquivo data.csv salvo na mesma pasta deste arquivo .py.
-        Retorna lista de dicionários com os livros encontrados.
-        """
         try:
             df = self.df
 
@@ -212,10 +196,6 @@ class SemanticSearch:
             return []
 
     def get_semantic_results(self, suggestion: str, num_results: int, score_threshold: float) -> list:
-        """
-        Executa a busca semântica com thresholds progressivos.
-        """
-
         thresholds = [score_threshold, 0.6, 0.5]
         for threshold in thresholds:
             results = self.books_index.similarity_search(
@@ -247,12 +227,6 @@ class SemanticSearch:
         return []
 
     def get_similar_books(self, search_content: str, suggestion: str) -> dict:
-        """
-        Combina busca exata (score > 1) com busca semântica.
-        search_content: busca exata do usuário,
-        suggestion: tratamento da LLM
-        """
-
         num_results = search_config['num_results']
         score_threshold = search_config['score_threshold']
 
@@ -274,36 +248,74 @@ class SemanticSearch:
 
         return unique_results
 
-    def generate_suggestion(self, search_content: str) -> str:
-        """
-        Usa LangChain com configuração explícita de credenciais.
-        """
-        try:
-            chat_model = ChatDatabricks(
-                endpoint=chat_model_config['endpoint'],
-                temperature=chat_model_config['temperature'],
-                max_tokens=chat_model_config['max_tokens']
-            )
-            prompt = suggestion_prompt_template.format(
-                search_content=search_content)
+    def generate_suggestion(self, search_content: str, provider: str = None) -> dict:
+        # Determina o provider a ser usado
+        if provider is None:
+            provider = os.getenv("LLM_PROVIDER", "databricks").lower()
 
-            response = chat_model.invoke(prompt)
-            return response.content
+        prompt = suggestion_prompt_template.format(search_content=search_content)
 
-        except Exception as e:
-            print(f"WARNING: Error generating suggestion: {e}")
-            return search_content
+        # Tenta usar o provider especificado
+        if provider == "bedrock":
+            try:
+                print(f"LOG: Using AWS Bedrock for suggestion generation...")
+                chat_model = BedrockChat(
+                    model_id=bedrock_model_config.get('model_id'),
+                    temperature=bedrock_model_config['temperature'],
+                    max_tokens=bedrock_model_config['max_tokens'],
+                    region_name=bedrock_model_config.get('region_name')
+                )
+                response = chat_model.invoke(prompt)
+                print(f"LOG: ✓ AWS Bedrock suggestion generated successfully")
+                return {
+                    'suggestion': response.content,
+                    'provider': 'bedrock',
+                    'error': None,
+                    'used_fallback': False
+                }
+            except Exception as e:
+                error_msg = f"AWS Bedrock error: {e}"
+                print(f"\n{'='*80}")
+                print(f"WARNING: AWS Bedrock FAILED - Using original search text as fallback")
+                print(f"ERROR: {error_msg}")
+                print(f"{'='*80}\n")
+                return {
+                    'suggestion': search_content,
+                    'provider': 'bedrock',
+                    'error': error_msg,
+                    'used_fallback': True
+                }
 
-    def search(self, search_content) -> dict:
-        """
-        Executa busca semântica baseada em string ou dicionário de campos.
+        else:  # databricks 
+            try:
+                print(f"LOG: Using Databricks for suggestion generation...")
+                chat_model = ChatDatabricks(
+                    endpoint=chat_model_config['endpoint'],
+                    temperature=chat_model_config['temperature'],
+                    max_tokens=chat_model_config['max_tokens']
+                )
+                response = chat_model.invoke(prompt)
+                print(f"LOG: ✓ Databricks suggestion generated successfully")
+                return {
+                    'suggestion': response.content,
+                    'provider': 'databricks',
+                    'error': None,
+                    'used_fallback': False
+                }
+            except Exception as e:
+                error_msg = f"Databricks error: {e}"
+                print(f"\n{'='*80}")
+                print(f"WARNING: Databricks FAILED - Using original search text as fallback")
+                print(f"ERROR: {error_msg}")
+                print(f"{'='*80}\n")
+                return {
+                    'suggestion': search_content,
+                    'provider': 'databricks',
+                    'error': error_msg,
+                    'used_fallback': True
+                }
 
-        Args:
-            search_content: String de busca ou dicionário com campos preenchidos
-
-        Returns:
-            dict: Resultado da busca com success/error e lista de resultados
-        """
+    def search(self, search_content, provider: str = None) -> dict:
         bugsnag.notify(Exception("Teste bugsnag model_2 dev"))
         try:
             # Validação e extração do valor de busca
@@ -318,12 +330,24 @@ class SemanticSearch:
                         "results": [],
                         "error": "ERROR: Invalid input. Provide a non-empty string or dict."}
 
-            # Executa a busca semântica
-            suggestion = self.generate_suggestion(search_value)
-            results = self.get_similar_books(search_value, suggestion)
+            # Executa a busca semântica com o provider escolhido
+            suggestion_result = self.generate_suggestion(search_value, provider=provider)
+            results = self.get_similar_books(search_value, suggestion_result['suggestion'])
 
-            return {"success": True,
-                    "results": results}
+            # Log adicional se usou fallback
+            if suggestion_result.get('used_fallback'):
+                print(f"WARNING: Search using FALLBACK mode - results may be less accurate")
+                print(f"         Original text: '{search_value}'")
+                print(f"         LLM refinement failed, using original text for vector search")
+
+            return {
+                "success": True,
+                "results": results,
+                "llm_provider": suggestion_result['provider'],
+                "llm_suggestion": suggestion_result['suggestion'],
+                "llm_error": suggestion_result['error'],
+                "llm_used_fallback": suggestion_result.get('used_fallback', False)
+            }
 
         except Exception as e:
             return {"success": False,

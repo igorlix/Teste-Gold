@@ -16,10 +16,10 @@ import pandas as pd
 from gold.busca.main import consolidation_function
 
 def test_busca_texto_livre():
-    """Teste de busca por texto livre"""
-    print("=" * 60)
-    print("TESTE 1: Busca por texto livre")
-    print("=" * 60)
+    """Teste de busca por texto livre com AMBOS os providers"""
+    print("=" * 80)
+    print("TESTE 1: Busca por texto livre - COMPARANDO DATABRICKS vs AWS BEDROCK")
+    print("=" * 80)
 
     data = {
         'searchQuery': 'Lei Maria da Penha',
@@ -62,25 +62,59 @@ def test_busca_texto_livre():
         return
 
     file_csv = pd.read_csv(csv_path, encoding="utf-8")
-    print(f"CSV carregado: {len(file_csv)} livros")
+    print(f"CSV carregado: {len(file_csv)} livros\n")
 
-    # Executa a busca
-    result = consolidation_function(data, file_csv, local=True)
+    # Testa com DATABRICKS primeiro
+    print("\n" + "=" * 80)
+    print("TESTE COM DATABRICKS")
+    print("=" * 80)
+    os.environ["LLM_PROVIDER"] = "databricks"
+    result_databricks = consolidation_function(data, file_csv, local=True)
 
-    print(f"\nResultado:")
-    print(f"  Success: {result.get('success')}")
-    print(f"  Total de resultados: {len(result.get('results', []))}")
+    print(f"\n✓ Resultado Databricks:")
+    print(f"  Success: {result_databricks.get('success')}")
+    print(f"  Total de resultados: {len(result_databricks.get('results', []))}")
 
-    if result.get('results'):
-        print(f"\nPrimeiros 3 resultados:")
-        for i, book in enumerate(result['results'][:3], 1):
+    if result_databricks.get('results'):
+        print(f"\n  Primeiros 3 resultados (DATABRICKS):")
+        for i, book in enumerate(result_databricks['results'][:3], 1):
             print(f"\n  {i}. {book.get('title')}")
             print(f"     Autor: {book.get('authors')}")
             print(f"     Score: {book.get('score'):.2f}")
             print(f"     Método: {book.get('method')}")
 
-    if result.get('error'):
-        print(f"\nErro: {result.get('error')}")
+    if result_databricks.get('error'):
+        print(f"\n  ⚠ Erro Databricks: {result_databricks.get('error')}")
+
+    # Testa com AWS BEDROCK
+    print("\n\n" + "=" * 80)
+    print("TESTE COM AWS BEDROCK")
+    print("=" * 80)
+    os.environ["LLM_PROVIDER"] = "bedrock"
+    result_bedrock = consolidation_function(data, file_csv, local=True)
+
+    print(f"\n✓ Resultado AWS Bedrock:")
+    print(f"  Success: {result_bedrock.get('success')}")
+    print(f"  Total de resultados: {len(result_bedrock.get('results', []))}")
+
+    if result_bedrock.get('results'):
+        print(f"\n  Primeiros 3 resultados (AWS BEDROCK):")
+        for i, book in enumerate(result_bedrock['results'][:3], 1):
+            print(f"\n  {i}. {book.get('title')}")
+            print(f"     Autor: {book.get('authors')}")
+            print(f"     Score: {book.get('score'):.2f}")
+            print(f"     Método: {book.get('method')}")
+
+    if result_bedrock.get('error'):
+        print(f"\n  ⚠ Erro AWS Bedrock: {result_bedrock.get('error')}")
+
+    # Comparação final
+    print("\n\n" + "=" * 80)
+    print("COMPARAÇÃO DATABRICKS vs AWS BEDROCK")
+    print("=" * 80)
+    print(f"Total resultados Databricks: {len(result_databricks.get('results', []))}")
+    print(f"Total resultados AWS Bedrock: {len(result_bedrock.get('results', []))}")
+    print("=" * 80)
 
 
 def test_busca_por_campos():
