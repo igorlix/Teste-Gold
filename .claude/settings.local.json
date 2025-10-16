@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/igor/Documents/GitHub/Terraform-AWS/**)",
+      "Bash(aws ec2 describe-subnets:*)",
+      "Bash(aws ecs describe-services:*)",
+      "Bash(terraform state:*)",
+      "Bash(terraform import:*)",
+      "Bash(terraform plan:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws logs get-log-events:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(docker build:*)",
+      "Bash(docker tag:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws logs describe-log-streams:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

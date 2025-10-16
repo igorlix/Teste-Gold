@@ -27,7 +27,7 @@ class Settings:
     AWS_BEDROCK_MODEL_ID: str = os.getenv("AWS_BEDROCK_MODEL_ID", "us.amazon.nova-pro-v1:0")
 
     # LLM Provider
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "bedrock")
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "databricks")
 
     # CORS
     CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "*").split(",")

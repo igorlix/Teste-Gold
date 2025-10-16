@@ -19,8 +19,10 @@ except ImportError:
     bugsnag = MockBugsnag()
 
 runner = str(os.getenv("WHO_IS_RUNNING_THIS"))
-if (runner=="ENDPOINT_NOTEBOOK") or (runner=="ENDPOINT_MLFLOW"):
+if runner=="ENDPOINT_NOTEBOOK":
     from model.config_fuzzy_search import MAX_RESULTS, field_config, required_columns
+elif runner=="ENDPOINT_MLFLOW":
+    from gold.busca.config_fuzzy_search import MAX_RESULTS, field_config, required_columns
 else: # teste local
     # Tenta import relativo (quando importado como módulo) ou absoluto (quando executado diretamente)
     try:

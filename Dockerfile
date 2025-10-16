@@ -54,7 +54,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     ENVIRONMENT=production \
     LOG_LEVEL=INFO
 
-# Copy application code
+# Copy application code (updated: imports fix)
 COPY --chown=appuser:appuser ./src /app/src
 COPY --chown=appuser:appuser ./api /app/api
 

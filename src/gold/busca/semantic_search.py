@@ -38,15 +38,17 @@ if runner=="ENDPOINT_NOTEBOOK":
         vector_search_config,
     )
 elif runner=="ENDPOINT_MLFLOW":
-    from dynamic_cat import env_config
-    from aws_utils import secrets
-    from model.config_semantic_search import (
+    from utils.dynamic_cat import env_config
+    from utils.aws_utils import secrets
+    from gold.busca.config_semantic_search import (
         chat_model_config,
+        bedrock_model_config,
         required_columns,
         search_config,
         suggestion_prompt_template,
         vector_search_config,
     )
+    from gold.busca.bedrock_chat import BedrockChat
 else: # teste local
     from utils.dynamic_cat import dynamic_catalog, env_config
 
@@ -122,8 +124,35 @@ class SemanticSearch:
                 disable_notice=True
             )
 
+        # Se rodando no ENDPOINT_MLFLOW (ECS), pega host e token das variáveis de ambiente
+        if runner == "ENDPOINT_MLFLOW":
+            print("LOG: Running in ENDPOINT_MLFLOW mode (ECS)...")
+            databricks_host = os.getenv("DATABRICKS_HOST")
+            databricks_token = os.getenv("DATABRICKS_TOKEN")
+
+            if not databricks_host or not databricks_token:
+                raise ValueError(
+                    "DATABRICKS_HOST and DATABRICKS_TOKEN must be set in environment or Secrets Manager."
+                )
+
+            # Garante que o host tem https://
+            if not databricks_host.startswith("https://"):
+                databricks_host = f"https://{databricks_host}"
+
+            print(f"LOG: Connecting to Databricks at {databricks_host}")
+            return VectorSearchClient(
+                workspace_url=databricks_host,
+                personal_access_token=databricks_token,
+                disable_notice=True
+            )
+
+        # Se rodando no ENDPOINT_NOTEBOOK (Databricks), usa dynamic_catalog
         if not host: # se está rodando localmente sem WHO_IS_RUNNING_THIS, pega do dynamic_catalog
             host = "https://"+str(dynamic_catalog.get_host())
+        else:
+            # Garante que o host tem https://
+            if not host.startswith("https://"):
+                host = f"https://{host}"
 
         # Se o host for prod, então muda o workspace_url do vector search
         if host == "https://"+str(env_config.DATABRICKS_URL_PRD):
@@ -135,9 +164,9 @@ class SemanticSearch:
                 workspace_url="https://"+str(env_config.DATABRICKS_URL_DEV),
                 personal_access_token=token)
         else:
-            print("LOG: It seems like we are in dev.\n\
-                  Using the local vector search endpoint...")
-            # Se não estiver em prod, então usa configuração automática
+            print("LOG: It seems like we are in dev (Databricks notebook).\n\
+                  Using the default vector search configuration...")
+            # Se não estiver em prod, então usa configuração automática (só funciona dentro do Databricks)
             return VectorSearchClient(disable_notice=True) # padrão
         
     def _load_data(self, df: pd.DataFrame) -> pd.DataFrame:

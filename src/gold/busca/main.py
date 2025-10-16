@@ -23,10 +23,20 @@ if runner=="ENDPOINT_NOTEBOOK":
     from model.rrf import *
     from utils.bugsnag_utils import bugsnag_notify
 elif runner=="ENDPOINT_MLFLOW":
-    from model.fuzzy_search import *
-    from model.semantic_search import *
-    from model.rrf import *
-    from bugsnag_utils import bugsnag_notify
+    # Para ECS/Container Docker, usa imports absolutos do pacote gold.busca
+    from gold.busca.fuzzy_search import *
+    from gold.busca.semantic_search import *
+    from gold.busca.rrf import *
+
+    try:
+        from utils.bugsnag_utils import bugsnag_notify
+    except (ImportError, ModuleNotFoundError):
+        # Mock para ambiente sem bugsnag_utils
+        class MockBugsnagNotify:
+            @staticmethod
+            def configure_bugsnag():
+                pass
+        bugsnag_notify = MockBugsnagNotify()
 else: # local
     # Tenta imports relativos (quando importado como módulo) ou absolutos (quando executado diretamente)
     try:

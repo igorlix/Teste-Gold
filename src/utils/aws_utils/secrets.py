@@ -4,7 +4,7 @@ sys.path.append(str(Path('../..').resolve()))
 
 runner = str(os.getenv("WHO_IS_RUNNING_THIS"))
 if runner == "ENDPOINT_MLFLOW":
-    from aws_utils import assume_role
+    from . import assume_role
 else:
     from utils.aws_utils import assume_role
 
