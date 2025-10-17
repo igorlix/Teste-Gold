@@ -22,7 +22,7 @@ def test_busca_texto_livre():
     print("=" * 80)
 
     data = {
-        'searchQuery': 'Lei Maria da Penha',
+        'searchQuery': 'Maria da Penha',
         'selectedFields': {
             'titulo': '',
             'autores': '',

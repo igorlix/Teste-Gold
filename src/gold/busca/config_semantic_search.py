@@ -1,7 +1,7 @@
 # Configurações do Databricks Vector Search
 vector_search_config = {
-    "endpoint_name": "my_books_endpoint",
-    "index_table": "gold_mb_dev.busca_avancada.my_books_search_index",
+    "endpoint_name": "recommendation_endpoint",
+    "index_table": "gold_mb_dev.busca_avancada.ebooks_search_index",
     "table": "bronze_mb_dev.busca_avancada.ebooks_search"
 }
 

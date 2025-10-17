@@ -13,7 +13,7 @@ Sistema de busca avançada para catálogo de livros usando técnicas de busca fu
 
 ## Requisitos
 
-- **Python 3.10 ou 3.11** (Recomendado para Windows - evita problemas de compilação)
+- **Python 3.10 ou 3.11** (Recomendado para Windows)
 - Python 3.8+ (mínimo)
 - Acesso ao Databricks (host e token)
 - Dependências listadas em `requirements.txt`
